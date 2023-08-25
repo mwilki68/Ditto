@@ -3,6 +3,7 @@ import pandas as pd
 import psycopg2
 from datetime import datetime
 import numpy as np
+import chardet
 
 # Define your PostgreSQL database connection parameters
 db_params = {
@@ -14,11 +15,12 @@ db_params = {
 }
 
 # Define the path to your CSV file
-csv_file = r'B:\Code\Database\test1.csv'
+csv_file = r'B:\Code\Ditto\test3.csv'
+
 
 
 # Read the CSV file into a df
-df = pd.read_csv(csv_file)
+df = pd.read_csv(csv_file, encoding='iso-8859-1')
 
 
 df = df.where(pd.notnull(df), None)
