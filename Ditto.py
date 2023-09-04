@@ -30,6 +30,12 @@ def insert_liaison(path):\
 
         # Default date value
     default_date = '1753-01-01'
+    default_blank = '0'
+
+    df['Task ID'] = df['Task ID'].fillna(default_blank)
+    df['Entity Id'] = df['Entity Id'].fillna(default_blank)
+
+
 
     # List of date columns in your DataFrame
     date_columns = ['Complete Date', 'Modified Date', 'Created Date', 'Date of Birth', 'Date Will Logged']
@@ -91,6 +97,10 @@ def insert_ror(path):\
     
     # Default date value
     default_date = '1753-01-01'
+    default_blank = '0'
+
+    df['Task ID'] = df['Task ID'].fillna(default_blank)
+    df['Entity Id'] = df['Entity Id'].fillna(default_blank)
 
     # List of date columns in your DataFrame
     date_columns = ['Complete Date', 'Modified Date', 'Created Date', 'Date of Birth', 'Date Will Logged']
@@ -152,6 +162,10 @@ def insert_wl(path):\
     
     # Default date value
     default_date = '1753-01-01'
+    default_blank = '0'
+
+    df['Task ID'] = df['Task ID'].fillna(default_blank)
+    df['Entity Id'] = df['Entity Id'].fillna(default_blank)
 
     # List of date columns in your DataFrame
     date_columns = ['Complete Date', 'Modified Date', 'Created Date', 'Date of Birth', 'Date Will Logged']
@@ -213,6 +227,10 @@ def insert_tasks(path):\
     
     # Default date value
     default_date = '1753-01-01'
+    default_blank = '0'
+
+    df['Task ID'] = df['Task ID'].fillna(default_blank)
+    df['Entity Id'] = df['Entity Id'].fillna(default_blank)
 
     # List of date columns in your DataFrame
     date_columns = ['Complete Date', 'Modified Date', 'Created Date', 'Date of Birth', 'Date Will Logged']
@@ -274,6 +292,10 @@ def insert_epp(path):\
     
     # Default date value
     default_date = '1753-01-01'
+    default_blank = '0'
+
+    df['Task ID'] = df['Task ID'].fillna(default_blank)
+    df['Entity Id'] = df['Entity Id'].fillna(default_blank)
 
     # List of date columns in your DataFrame
     date_columns = ['Complete Date', 'Modified Date', 'Created Date', 'Date of Birth', 'Date Will Logged']
