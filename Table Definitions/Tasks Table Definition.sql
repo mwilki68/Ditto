@@ -3,7 +3,7 @@ CREATE sequence IF NOT exists tasks_recno_seq;
 
 CREATE TABLE IF NOT EXISTS public.tasks
 (
-    recno bigint NOT NULL DEFAULT nextval('tasks_recno_seq'::regclass),
+    recno serial NOT NULL,
     entity_id integer,
     entity_name character varying COLLATE pg_catalog."default",
     thread_name character varying COLLATE pg_catalog."default",

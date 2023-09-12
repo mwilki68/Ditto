@@ -5,18 +5,18 @@ from datetime import datetime
 import numpy as np
 from configparser import ConfigParser
 
-config = ConfigParser()
+config_dev = ConfigParser()
 # The path below should also be changed when in development 
-path = os.path.join('//appsrv', 'business intelligence', 'Code', 'Ditto', 'config.ini')
-config.read(path)
+path = os.path.join('//appsrv', 'business intelligence', 'Code', 'Ditto', 'config_dev.ini')
+config_dev.read(path)
 
 # Define your PostgreSQL database connection parameters
 db_params = {
-    'dbname': config['Conn']['dbname'],
-    'user': config['Conn']['user'],
-    'password': config['Conn']['password'],
-    'host': config['Conn']['host'],
-    'port': config['Conn']['port']
+    'dbname': config_dev['Conn']['dbname'],
+    'user': config_dev['Conn']['user'],
+    'password': config_dev['Conn']['password'],
+    'host': config_dev['Conn']['host'],
+    'port': config_dev['Conn']['port']
 }
 
 def insert_liaison(path):\
@@ -349,10 +349,74 @@ def insert_epp(path):\
 
 # -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+def update_TA(path):
+
+    # Connect to the PostgreSQL database
+    conn = psycopg2.connect(**db_params)
+
+    # Create a cursor object to interact with the database
+    cursor = conn.cursor()
+
+    # delete_all_query = """DELETE FROM teams;"""
+    # # Execute the DELETE statement
+    # cursor.execute(delete_all_query)
+
+    # Read the CSV file into a df
+    df = pd.read_csv(path, encoding='iso-8859-1')
+
+    df = df.where(pd.notnull(df), None)
+    df = df.replace(np.nan, None)
+    
+
+    # Connect to the PostgreSQL database
+    try:
+
+        delete_all_query = """DELETE FROM teams;"""
+        # Execute the DELETE statement
+        cursor.execute(delete_all_query)
 
 
-insert_liaison(config['Source']['liaisons'])
-insert_ror(config['Source']['ror'])
-insert_wl(config['Source']['wl'])
-insert_tasks(config['Source']['tasks'])
-insert_epp(config['Source']['epp'])
+        # Iterate through the df and insert data into the PostgreSQL table
+        for index, row in df.iterrows():
+            insert_query = """
+            INSERT INTO teams (
+                entity_id, entity_name, ws, crs, cro, asa, ram, aram, category, network, region, referrer
+            )
+            VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )
+            
+            """
+            cursor.execute(insert_query, (
+                row['Entity ID'], row['Entity Name'], row['Wealth Team'], row['Client Relationship Specialist'],
+                row['Client Relationship Officer'], row['Annuity Split Allocation'], row['Key Details | Regional Admin Manager'], 
+                    row['Key Details | RAM Assistant'], row['Category'], row['Referral | Network'], row['Region'], row['Primary Referrer']
+            ))
+
+        conn.commit()
+
+    except Exception as e:
+        print("Error:", e)
+
+    finally:
+        # Close the database connection, regardless of whether an error occurred or not
+        if 'conn' in locals() and conn is not None:
+            cursor.close()
+            conn.close()
+
+
+
+
+
+
+
+
+
+# -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+update_TA(config_dev['Source']['TA'])
+insert_liaison(config_dev['Source']['liaisons'])
+insert_ror(config_dev['Source']['ror'])
+insert_wl(config_dev['Source']['wl'])
+insert_tasks(config_dev['Source']['tasks'])
+insert_epp(config_dev['Source']['epp'])

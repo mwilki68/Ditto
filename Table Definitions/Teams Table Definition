@@ -1,0 +1,16 @@
+CREATE TABLE public.teams (
+	entity_id int8 NOT NULL,
+	entity_name varchar(50) NULL,
+	ws varchar(50) NULL,
+	crs varchar(100) NULL,
+	cro varchar(100) NULL,
+	asa varchar(100) NULL,
+	ram varchar(100) NULL,
+	aram varchar(100) NULL,
+	category varchar(100) NULL,
+	network varchar(100) NULL,
+	region varchar(100) NULL,
+	referrer varchar(100) NULL,
+	edit_timestamp timestamptz NULL DEFAULT CURRENT_TIMESTAMP,
+	CONSTRAINT teams_pkey PRIMARY KEY (entity_id)
+);

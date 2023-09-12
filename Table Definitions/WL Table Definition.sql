@@ -3,7 +3,7 @@ CREATE sequence IF NOT exists wl_recno_seq;
 
 CREATE TABLE IF NOT EXISTS public.wl
 (
-    recno bigint NOT NULL DEFAULT nextval('wl_recno_seq'::regclass),
+    recno serial NOT NULL,
     entity_id integer,
     entity_name character varying COLLATE pg_catalog."default",
     thread_name character varying COLLATE pg_catalog."default",

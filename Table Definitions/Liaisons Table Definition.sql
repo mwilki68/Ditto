@@ -3,7 +3,7 @@ CREATE sequence IF NOT exists liaisons_recno_seq;
 
 CREATE TABLE IF NOT EXISTS public.liaisons
 (
-    recno bigint NOT NULL DEFAULT nextval('liaisons_recno_seq'::regclass),
+    recno serial NOT NULL, 
     entity_id integer,
     entity_name character varying COLLATE pg_catalog."default",
     thread_name character varying COLLATE pg_catalog."default",
