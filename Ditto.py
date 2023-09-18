@@ -357,9 +357,6 @@ def update_TA(path):
     # Create a cursor object to interact with the database
     cursor = conn.cursor()
 
-    # delete_all_query = """DELETE FROM teams;"""
-    # # Execute the DELETE statement
-    # cursor.execute(delete_all_query)
 
     # Read the CSV file into a df
     df = pd.read_csv(path, encoding='iso-8859-1')
@@ -403,11 +400,64 @@ def update_TA(path):
             cursor.close()
             conn.close()
 
+# -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def update_referrers(path):
+
+    # Connect to the PostgreSQL database
+    conn = psycopg2.connect(**db_params)
+
+    # Create a cursor object to interact with the database
+    cursor = conn.cursor()
 
 
+    # Read the CSV file into a df
+    df = pd.read_csv(path, encoding='iso-8859-1')
+
+    df = df.where(pd.notnull(df), None)
+    df = df.replace(np.nan, None)
+    
 
 
+    # Connect to the PostgreSQL database
+    try:
 
+        delete_all_query = """DELETE FROM referrers;"""
+        # Execute the DELETE statement
+        cursor.execute(delete_all_query)
+
+
+        # Iterate through the df and insert data into the PostgreSQL table
+        for index, row in df.iterrows():
+            insert_query = """
+            INSERT INTO referrers (
+                entity_id, network, referrer_code, referrer_name, referrer_company_name, 
+                first_name, last_name, preferred_name, salultation, club_president, club_contact_person, 
+                preferred_email, preferred_phone, street, suburb, province, postcode, referrer_category, 
+                region, ws, xplan_linked_profile_entity_id, kicker_deal_applicable, kicker_deal_broker, upfronts_earned, 
+                kicker_deal_earned, max_invest_clients, sponsorship_level, date_created, agreement_type, 
+                merger_start_date, merger_end_date, merger_fum, pnm, club_category, "subscription"
+            )
+            VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            
+            """
+            cursor.execute(insert_query,(
+                row['Referrer Entity ID'], row['Network'], row['Referrer Code'], row['Referrer Xplan Name'], row['Referrer Company Name'], row['First Name'], row['Surname'], row['Preferred Name'], row['Salutation/Greeting'], row['Club President'], row['Club Contact Person'], row['Preferred Email'], row['Preferred Phone'], row['Street'], row['Suburb'], 
+                row['State/Province'], row['Postcode'], row['Referrer Category'], row['Region'], row['Wealth Team'], row['Xplan Linked Profile Entity ID'], row['Kicker Deal Applicable'], row['Kicker Deal Broker'], row['Upfronts Earned'], row['Kicker Deal Earned'], row['Max Invest Clients'], row['Sponsorship Level'], row['Date Created'], row['Agreement Type'], row['Merger Start Date'], row['Merger End Date'], 
+                row['Merger FUM'], row['PNM'], row['Club Category'], row['Subscription']
+            ))
+
+        conn.commit()
+
+    except Exception as e:
+        print("Error:", e)
+
+    finally:
+        # Close the database connection, regardless of whether an error occurred or not
+        if 'conn' in locals() and conn is not None:
+            cursor.close()
+            conn.close()
 
 
 
@@ -420,3 +470,4 @@ insert_ror(config_dev['Source']['ror'])
 insert_wl(config_dev['Source']['wl'])
 insert_tasks(config_dev['Source']['tasks'])
 insert_epp(config_dev['Source']['epp'])
+update_referrers(config_dev['Source']['referrers'])
