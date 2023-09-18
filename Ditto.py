@@ -459,10 +459,60 @@ def update_referrers(path):
             cursor.close()
             conn.close()
 
+# -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def update_staff(path):
+
+    # Connect to the PostgreSQL database
+    conn = psycopg2.connect(**db_params)
+
+    # Create a cursor object to interact with the database
+    cursor = conn.cursor()
+
+
+    # Read the CSV file into a df
+    df = pd.read_excel(path)
+
+    df = df.where(pd.notnull(df), None)
+    df = df.replace(np.nan, None)
+    
+
+
+    # Connect to the PostgreSQL database
+    try:
+
+        delete_all_query = """DELETE FROM staff;"""
+        # Execute the DELETE statement
+        cursor.execute(delete_all_query)
+
+
+        # Iterate through the df and insert data into the PostgreSQL table
+        for index, row in df.iterrows():
+            insert_query = """
+            INSERT INTO staff ("order", xplan_name, first_name, last_name, user_status, dashboard_status, regional_office, sales_team_category, 
+            job_title_short, category, advisory, job_title_long, team_name, 
+            sort_order, region, area, hex, font)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(insert_query,(
+                row['Order'], row['Xplan Name'], row['First Name'], row['Surname'], row['User Status'], row['Dashboards Status'], row['Regional Office'], row['Sales Team Category (Description)'], 
+                row['Job Title Short (Adviser Code)'], row['Category'], row['Advisory'], row['Job Title Long'], row['Team Name'], row['Sort Order'], row['Region'], 
+                row['Area'], row['HEX'], row['Font (HEX)'] 
+            ))
+
+        conn.commit()
+
+    except Exception as e:
+        print("Error:", e)
+
+    finally:
+        # Close the database connection, regardless of whether an error occurred or not
+        if 'conn' in locals() and conn is not None:
+            cursor.close()
+            conn.close()
 
 
 # -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 
 update_TA(config_dev['Source']['TA'])
 insert_liaison(config_dev['Source']['liaisons'])
@@ -471,3 +521,4 @@ insert_wl(config_dev['Source']['wl'])
 insert_tasks(config_dev['Source']['tasks'])
 insert_epp(config_dev['Source']['epp'])
 update_referrers(config_dev['Source']['referrers'])
+update_staff(config_dev['Source']['staff'])
