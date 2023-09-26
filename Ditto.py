@@ -511,8 +511,57 @@ def update_staff(path):
             cursor.close()
             conn.close()
 
+# -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+def update_entity(path):
+
+    # Connect to the PostgreSQL database
+    conn = psycopg2.connect(**db_params)
+
+    # Create a cursor object to interact with the database
+    cursor = conn.cursor()
+
+
+    # Read the CSV file into a df
+    df = pd.read_csv(path, encoding='iso-8859-1')
+
+    df = df.where(pd.notnull(df), None)
+    df = df.replace(np.nan, None)
+    
+
+
+    # Connect to the PostgreSQL database
+    try:
+
+        delete_all_query = """DELETE FROM entity;"""
+        # Execute the DELETE statement
+        cursor.execute(delete_all_query)
+
+
+        # Iterate through the df and insert data into the PostgreSQL table
+        for index, row in df.iterrows():
+            insert_query = """
+            INSERT INTO entity (entity_id, entity_name, category, entity_type, first_name, last_name, id, dob, age, marital_status, company_name, company_number, trust_name, 
+            trust_number, offering, "subscription")
+            VALUES (%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s)
+            """
+            cursor.execute(insert_query,(
+                row['Entity Id'],row['Entity Name'],row['Category'],row['Entity Type'],row['First Name'],row['Surname'],row['ID'],row['Date of Birth'],row['Age'],
+                row['Marital Status'],row['Company Name'],row['Company Number'],row['Trust Name'],row['Trust Number'],row['Offering'],row['Subscription'] 
+            ))
+
+        conn.commit()
+
+    except Exception as e:
+        print("Error:", e)
+
+    finally:
+        # Close the database connection, regardless of whether an error occurred or not
+        if 'conn' in locals() and conn is not None:
+            cursor.close()
+            conn.close()
 
 # -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 update_TA(config_dev['Source']['TA'])
 insert_liaison(config_dev['Source']['liaisons'])
@@ -522,3 +571,6 @@ insert_tasks(config_dev['Source']['tasks'])
 insert_epp(config_dev['Source']['epp'])
 update_referrers(config_dev['Source']['referrers'])
 update_staff(config_dev['Source']['staff'])
+update_entity(config_dev['Source']['entity'])
+
+
