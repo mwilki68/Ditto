@@ -4,6 +4,10 @@ import psycopg2
 from datetime import datetime
 import numpy as np
 from configparser import ConfigParser
+import time 
+
+
+start_time = time.time()
 
 config_dev = ConfigParser()
 # The path below should also be changed when in development 
@@ -476,8 +480,6 @@ def update_staff(path):
     df = df.where(pd.notnull(df), None)
     df = df.replace(np.nan, None)
     
-
-
     # Connect to the PostgreSQL database
     try:
 
@@ -512,6 +514,97 @@ def update_staff(path):
             conn.close()
 
 # -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+def update_contact(path):
+
+    # Connect to the PostgreSQL database
+    conn = psycopg2.connect(**db_params)
+
+    # Create a cursor object to interact with the database
+    cursor = conn.cursor()
+
+
+    # Specify data types for specific columns
+    dtype_options = {
+        'Entity Id': int,
+        'Area Code': str,
+        'Country Code': str,
+        'Detail': str,
+        'Extension': str,
+        'Integration Indicator': str,
+        'List Item Index': str,
+        'List Item Last Modified': str,
+        'List Item Last Modified By': str,
+        'Name': str,
+        'Notes': str,
+        'Position': str,
+        'Preferred': str,
+        'Preferred SMS Mobile': str,
+        'Source': str,
+        'Source Entity': str,
+        'Source Index': str,
+        'Type': str,
+        'Unknown': str,
+        'Update From Datafeed': str
+    }
+
+    # Read the CSV file with dtype options
+    df = pd.read_csv(path, encoding='iso-8859-1', dtype=dtype_options)
+
+    df = df.where(pd.notnull(df), None)
+    df = df.replace(np.nan, None)
+    
+
+        # Default date value
+    default_date = '1753-01-01'
+    default_blank = '0'
+
+    df['Entity Id'] = df['Entity Id'].fillna(default_blank)
+    df['List Item Index'] = df['List Item Index'].fillna(default_blank)
+    df['Type'] = df['Type'].fillna(default_blank)
+
+
+    # List of date columns in your DataFrame
+    date_columns = ['List Item Last Modified']
+    # Loop through date columns and replace null values with default date
+    for col in date_columns:
+        df[col] = df[col].fillna(default_date)
+
+
+    # Connect to the PostgreSQL database
+    try:
+
+        delete_all_query = """DELETE FROM contact;"""
+        # Execute the DELETE statement
+        cursor.execute(delete_all_query)
+
+
+        # Iterate through the df and insert data into the PostgreSQL table
+        for index, row in df.iterrows():
+            insert_query = """
+            INSERT INTO contact (entity_id, "area_code", country_code, detail, "extension", integration_indicator, list_item_index, list_item_last_modified, 
+            list_item_last_modified_by, "name", notes, "position", preferred, preferred_sms_mobile, "source", 
+            source_entity, source_index, "type", unkown, update_from_datafeed)
+            VALUES (%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s,	%s)
+            """
+            cursor.execute(insert_query,(
+                row['Entity Id'],row['Area Code'],row['Country Code'],row['Detail'],row['Extension'], row['Integration Indicator'],row['List Item Index'],
+                row['List Item Last Modified'],row['List Item Last Modified By'],row['Name'],row['Notes'],row['Position'],row['Preferred'],row['Preferred SMS Mobile'],
+                row['Source'], row['Source Entity'],row['Source Index'],row['Type'],row['Unknown'],row['Update From Datafeed']
+            ))
+
+        conn.commit()
+
+    except Exception as e:
+        print("Error:", e)
+
+    finally:
+        # Close the database connection, regardless of whether an error occurred or not
+        if 'conn' in locals() and conn is not None:
+            cursor.close()
+            conn.close()
+
+# -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 def update_entity(path):
 
     # Connect to the PostgreSQL database
@@ -562,6 +655,33 @@ def update_entity(path):
 
 # -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+def clear_tables():
+
+    # Connect to the PostgreSQL database
+    conn = psycopg2.connect(**db_params)
+
+    # Create a cursor object to interact with the database
+    cursor = conn.cursor()
+    
+  
+    tables = ['contact','entity', 'epp', 'liaisons', 'reviews', 'tasks', 'referrers', 'staff', 'teams', 'wl']
+
+    for table in tables:
+
+        # Use table variable to specify the table name in the DELETE query
+        delete_all_query = f"DELETE FROM {table};"
+        # Execute the DELETE statement
+        cursor.execute(delete_all_query)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+
+
+
+# -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 update_TA(config_dev['Source']['TA'])
 insert_liaison(config_dev['Source']['liaisons'])
@@ -572,5 +692,25 @@ insert_epp(config_dev['Source']['epp'])
 update_referrers(config_dev['Source']['referrers'])
 update_staff(config_dev['Source']['staff'])
 update_entity(config_dev['Source']['entity'])
+update_contact(config_dev['Source']['contact'])
 
 
+
+# clear_tables()
+
+
+
+
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+end_time = time.time()
+
+seconds = end_time - start_time
+
+
+h, m, s = map(lambda x: int(x), [seconds/3600, seconds%3600/60, seconds%60])
+
+print(f'{h}:{m:02d}:{s:02d}')
