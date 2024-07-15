@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import psycopg2
+from psycopg2 import sql
 from datetime import datetime
 import numpy as np
 from configparser import ConfigParser
@@ -26,7 +27,22 @@ db_params = {
 def insert_liaison(path):\
 
     # Read the CSV file into a df
+
+    
+
     df = pd.read_csv(path, encoding='iso-8859-1')
+    current_timestamp = datetime.today().strftime('%Y-%m-%d %H:%M:%S')
+    df['edit_timestamp'] = current_timestamp
+    df['complete_month'] = pd.to_datetime(df['edit_timestamp']).dt.month
+    df['complete_year'] = pd.to_datetime(df['edit_timestamp']).dt.year
+    df['id_key'] = df['Task ID'].astype(str) + df['complete_month'].astype(str) + df['complete_year'].astype(str)  
+    
+    # print(df)
+    
+    
+
+
+
 
 
     df = df.where(pd.notnull(df), None)
@@ -38,6 +54,9 @@ def insert_liaison(path):\
 
     df['Task ID'] = df['Task ID'].fillna(default_blank)
     df['Entity Id'] = df['Entity Id'].fillna(default_blank)
+    
+    
+    # print(df.columns)
 
 
 
@@ -49,34 +68,62 @@ def insert_liaison(path):\
         df[col] = df[col].fillna(default_date)
 
 
-    # Connect to the PostgreSQL database
+
+
     try:
         conn = psycopg2.connect(**db_params)
 
         # Create a cursor object to interact with the database
         cursor = conn.cursor()
 
-        # Iterate through the df and insert data into the PostgreSQL table
+        # Iterate through the df and insert or update data into the PostgreSQL table
         for index, row in df.iterrows():
-            insert_query = """
-            INSERT INTO liaisons (
-                entity_id, entity_name, thread_name, task_id, task_name, "type", "subtype",
-                status, assigner, assignee, created_date, modified_date, complete_date,
+            insert_query = sql.SQL("""
+            INSERT INTO liaisons_dev (
+                id_key, entity_id, entity_name, thread_name, task_id, task_name, "type", "subtype",
+                status, assigner, assignee, created_date, modified_date, complete_date, complete_month, complete_year,
                 ws_team, region, network, primary_referrer, pnm, agreement_type,
-                dob, entity_type, id, date_will_logged
+                dob, entity_type, id, date_will_logged, edit_timestamp
             )
             VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
             )
-            ON CONFLICT (entity_id, task_id, complete_date) DO NOTHING;
-            """
+            ON CONFLICT (id_key) DO UPDATE SET
+                entity_id = EXCLUDED.entity_id,
+                entity_name = EXCLUDED.entity_name,
+                thread_name = EXCLUDED.thread_name,
+                task_id = EXCLUDED.task_id,
+                task_name = EXCLUDED.task_name,
+                "type" = EXCLUDED."type",
+                "subtype" = EXCLUDED."subtype",
+                status = EXCLUDED.status,
+                assigner = EXCLUDED.assigner,
+                assignee = EXCLUDED.assignee,
+                created_date = EXCLUDED.created_date,
+                modified_date = EXCLUDED.modified_date,
+                complete_date = EXCLUDED.complete_date,
+                complete_month = EXCLUDED.complete_month,
+                complete_year = EXCLUDED.complete_year,
+                ws_team = EXCLUDED.ws_team,
+                region = EXCLUDED.region,
+                network = EXCLUDED.network,
+                primary_referrer = EXCLUDED.primary_referrer,
+                pnm = EXCLUDED.pnm,
+                agreement_type = EXCLUDED.agreement_type,
+                dob = EXCLUDED.dob,
+                entity_type = EXCLUDED.entity_type,
+                id = EXCLUDED.id,
+                date_will_logged = EXCLUDED.date_will_logged,
+                edit_timestamp = EXCLUDED.edit_timestamp;
+            """)
+            
             cursor.execute(insert_query, (
-                row['Entity Id'], row['Entity Name'], row['Thread Name'], row['Task ID'],
+            row['id_key'], row['Entity Id'], row['Entity Name'], row['Thread Name'], row['Task ID'],
                 row['Task Name'], row['Type'], row['Subtype'], row['Status'], row['Assigner'],
-                row['Assignee'], row['Created Date'], row['Modified Date'], row['Complete Date'],
+                row['Assignee'], row['Created Date'], row['Modified Date'], row['Complete Date'], row['complete_month'], row['complete_year'],
                 row['WS Team'], row['Region'], row['Network'], row['Primary Referrer'],
                 row['PNM'], row['Agreement Type'], row['Date of Birth'], 
-                row['Entity Type'], row['ID'], row['Date Will Logged']
+                row['Entity Type'], row['ID'], row['Date Will Logged'], row['edit_timestamp']
             ))
 
         conn.commit()
@@ -89,6 +136,51 @@ def insert_liaison(path):\
         if 'conn' in locals() and conn is not None:
             cursor.close()
             conn.close()
+
+
+    
+
+
+    # # Connect to the PostgreSQL database
+    # try:
+    #     conn = psycopg2.connect(**db_params)
+
+    #     # Create a cursor object to interact with the database
+    #     cursor = conn.cursor()
+
+    #     # Iterate through the df and insert data into the PostgreSQL table
+    #     for index, row in df.iterrows():
+    #         insert_query = """
+    #         INSERT INTO liaisons_dev (
+    #             id_key, entity_id, entity_name, thread_name, task_id, task_name, "type", "subtype",
+    #             status, assigner, assignee, created_date, modified_date, complete_date, complete_month, complete_year,
+    #             ws_team, region, network, primary_referrer, pnm, agreement_type,
+    #             dob, entity_type, id, date_will_logged, edit_timestamp
+    #         )
+    #         VALUES (
+    #             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+    #         )
+    #         ON CONFLICT (id_key) DO NOTHING;
+    #         """
+    #         cursor.execute(insert_query, (
+    #            row['id_key'], row['Entity Id'], row['Entity Name'], row['Thread Name'], row['Task ID'],
+    #             row['Task Name'], row['Type'], row['Subtype'], row['Status'], row['Assigner'],
+    #             row['Assignee'], row['Created Date'], row['Modified Date'], row['Complete Date'], row['complete_month'], row['complete_year'],
+    #             row['WS Team'], row['Region'], row['Network'], row['Primary Referrer'],
+    #             row['PNM'], row['Agreement Type'], row['Date of Birth'], 
+    #             row['Entity Type'], row['ID'], row['Date Will Logged'], row['edit_timestamp']
+    #         ))
+
+    #     conn.commit()
+
+    # except Exception as e:
+    #     print("Error:", e)
+
+    # finally:
+    #     # Close the database connection, regardless of whether an error occurred or not
+    #     if 'conn' in locals() and conn is not None:
+    #         cursor.close()
+    #         conn.close()
 
 # -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 def insert_ror(path):\
@@ -477,9 +569,11 @@ def update_staff(path):
     # Read the CSV file into a df
     df = pd.read_excel(path)
 
+
     df = df.where(pd.notnull(df), None)
     df = df.replace(np.nan, None)
     
+
     # Connect to the PostgreSQL database
     try:
 
@@ -569,7 +663,7 @@ def update_contact(path):
     for col in date_columns:
         df[col] = df[col].fillna(default_date)
 
-
+    
     # Connect to the PostgreSQL database
     try:
 
@@ -593,6 +687,7 @@ def update_contact(path):
             ))
 
         conn.commit()
+
 
     except Exception as e:
         print("Error:", e)
@@ -655,6 +750,55 @@ def update_entity(path):
 
 # -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+def update_exceptions(path):
+
+    # Connect to the PostgreSQL database
+    conn = psycopg2.connect(**db_params)
+
+    # Create a cursor object to interact with the database
+    cursor = conn.cursor()
+
+
+    # Read the CSV file into a df
+    df = pd.read_csv(path, encoding='iso-8859-1')
+
+    df = df.where(pd.notnull(df), None)
+    df = df.replace(np.nan, None)
+    
+    # Connect to the PostgreSQL database
+    try:
+
+        delete_all_query = """DELETE FROM exceptions;"""
+        # Execute the DELETE statement
+        cursor.execute(delete_all_query)
+
+
+        # Iterate through the df and insert data into the PostgreSQL table
+        for index, row in df.iterrows():
+            insert_query = """
+            INSERT INTO exceptions (entity_id, notes, complete_date)
+            VALUES (%s, %s, %s)
+            """
+            cursor.execute(insert_query,(
+                row['entity_id'], row['notes'], row['complete_date']
+            ))
+
+        conn.commit()
+
+    except Exception as e:
+        print("Error:", e)
+
+    finally:
+        # Close the database connection, regardless of whether an error occurred or not
+        if 'conn' in locals() and conn is not None:
+            cursor.close()
+            conn.close()
+
+
+# -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
 def clear_tables():
 
     # Connect to the PostgreSQL database
@@ -683,16 +827,18 @@ def clear_tables():
 
 # -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-update_TA(config_dev['Source']['TA'])
+# update_TA(config_dev['Source']['TA'])
 insert_liaison(config_dev['Source']['liaisons'])
-insert_ror(config_dev['Source']['ror'])
-insert_wl(config_dev['Source']['wl'])
-insert_tasks(config_dev['Source']['tasks'])
-insert_epp(config_dev['Source']['epp'])
-update_referrers(config_dev['Source']['referrers'])
-update_staff(config_dev['Source']['staff'])
-update_entity(config_dev['Source']['entity'])
-update_contact(config_dev['Source']['contact'])
+# insert_ror(config_dev['Source']['ror'])
+# insert_wl(config_dev['Source']['wl'])
+# insert_tasks(config_dev['Source']['tasks'])
+# insert_epp(config_dev['Source']['epp'])
+# update_referrers(config_dev['Source']['referrers'])
+# update_staff(config_dev['Source']['staff'])
+# update_entity(config_dev['Source']['entity'])
+# update_contact(config_dev['Source']['contact'])
+# update_exceptions(config_dev['Source']['exceptions'])
+
 
 
 
@@ -706,11 +852,13 @@ update_contact(config_dev['Source']['contact'])
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-end_time = time.time()
+# end_time = time.time()
 
-seconds = end_time - start_time
+# seconds = end_time - start_time
 
 
-h, m, s = map(lambda x: int(x), [seconds/3600, seconds%3600/60, seconds%60])
+# h, m, s = map(lambda x: int(x), [seconds/3600, seconds%3600/60, seconds%60])
 
-print(f'{h}:{m:02d}:{s:02d}')
+# print(f'{h}:{m:02d}:{s:02d}')
+
+
